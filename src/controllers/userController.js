@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const userService = require("../services/userService");
+const { extractErrorMsgs } = require("../utils/errorHandlers");
 
 router.get("/register", (req, res) => {
   res.render("user/register");
@@ -10,14 +11,20 @@ router.post("/register", async (req, res) => {
   //   if (password !== repeatPassword) {
   //     throw new Error("userController error");
   //   }
-  await userService.register({
-    firstName,
-    lastName,
-    email,
-    password,
-    repeatPassword,
-  });
-  res.redirect("/user/login");
+
+  try {
+    await userService.register({
+      firstName,
+      lastName,
+      email,
+      password,
+      repeatPassword,
+    });
+    res.redirect("/user/login");
+  } catch (error) {
+    const errorMessages = extractErrorMsgs(error);
+    res.status(404).render("user/register", { errorMessages });
+  }
 });
 
 router.get("/login", (req, res) => {
@@ -26,10 +33,14 @@ router.get("/login", (req, res) => {
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
-  const token = await userService.login(email, password);
-
-  res.cookie("token", token, { httpOnly: true });
-  res.redirect("/");
+  try {
+    const token = await userService.login(email, password);
+    res.cookie("token", token, { httpOnly: true });
+    res.redirect("/");
+  } catch (error) {
+    const errorMessages = extractErrorMsgs(error);
+    res.status(404).render("user/login", { errorMessages });
+  }
 });
 
 router.get("/logout", (req, res) => {
